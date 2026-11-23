@@ -159,19 +159,6 @@ Key literature (full IEEE list in `docs/` → References):
 
 ---
 
-## 👥 Authors
-
-| Name | USN |
-|---|---|
-| _Student 1_ | _1XX21AI001_ |
-| _Student 2_ | _1XX21AI002_ |
-| _Student 3_ | _1XX21AI003_ |
-| _Student 4_ | _1XX21AI004_ |
-
-**Guide:** _Guide Name, Designation_ · **Department of Artificial Intelligence and Machine Learning**
-
----
-
 ## 📄 License
 
 Code released under the MIT License (see `LICENSE`). The dataset remains subject to its original Kaggle
