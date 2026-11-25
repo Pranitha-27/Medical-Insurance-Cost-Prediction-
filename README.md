@@ -196,18 +196,6 @@ Key literature (full IEEE list in `docs/` → References):
 4. U. Orji, E. Ukwandu, "Machine learning for an explainable cost prediction of medical insurance," *ML with Applications*, 15:100516, 2024.
 5. M. Hanafy, O. M. A. Mahmoud, "Predict health insurance cost by using ML and DNN regression models," *IJITEE*, 10(3):137–143, 2021.
 
----
-
-## 👥 Authors
-
-| Name | USN |
-|---|---|
-| _Student 1_ | _1XX21AI001_ |
-| _Student 2_ | _1XX21AI002_ |
-| _Student 3_ | _1XX21AI003_ |
-| _Student 4_ | _1XX21AI004_ |
-
-**Guide:** _Guide Name, Designation_ · **Department of Artificial Intelligence and Machine Learning**
 
 Viva preparation: `VIVA_QA.md` (42 questions, with a one-table "quick number sheet" at the end).
 
