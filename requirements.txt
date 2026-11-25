@@ -5,6 +5,9 @@ scikit-learn>=1.6
 matplotlib>=3.9
 seaborn>=0.13
 
+# web app
+flask>=3.0
+
 # notebook
 jupyter>=1.0
 

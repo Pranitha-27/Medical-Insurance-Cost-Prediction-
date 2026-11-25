@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Medical Insurance Cost Predictor · ML Case Study 14</title>
+<style>
+  :root{
+    --ink:#0f1b2d; --ink-2:#3d4b60; --ink-3:#6b7a90;
+    --line:#dfe5ee; --line-2:#eef2f7;
+    --bg:#f5f7fb; --card:#ffffff;
+    --brand:#0e5c63; --brand-2:#0d7c86; --brand-soft:#e6f4f4;
+    --gold:#b4761a; --gold-soft:#fdf3e2;
+    --danger:#a8321f; --ok:#1f7a4d;
+    --radius:14px;
+    --shadow:0 1px 2px rgba(15,27,45,.06), 0 8px 24px -12px rgba(15,27,45,.18);
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--brand);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+
+  /* ---------- header ---------- */
+  header{background:linear-gradient(160deg,#0b3f45 0%,#0e5c63 55%,#0d7c86 100%);color:#fff;padding:34px 0 30px}
+  .eyebrow{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:#a8dbdd;font-weight:700}
+  h1{margin:8px 0 6px;font-size:clamp(22px,3.2vw,31px);line-height:1.2;letter-spacing:-.02em}
+  .sub{margin:0;color:#cfe9ea;max-width:70ch;font-size:14.5px}
+  .badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+  .badge{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);
+    border-radius:999px;padding:5px 12px;font-size:12.5px;color:#eaf7f7}
+  .badge b{font-variant-numeric:tabular-nums}
+
+  /* ---------- layout ---------- */
+  main{padding:26px 0 10px}
+  .grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.02fr);gap:20px;align-items:start}
+  @media (max-width:900px){ .grid{grid-template-columns:1fr} }
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+  .card-head{padding:16px 20px;border-bottom:1px solid var(--line-2);display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .card-head h2{margin:0;font-size:15px;letter-spacing:-.01em}
+  .card-body{padding:18px 20px}
+  .hint{font-size:12.5px;color:var(--ink-3);margin:0}
+
+  /* ---------- form ---------- */
+  .field{margin-bottom:16px}
+  .field:last-of-type{margin-bottom:6px}
+  .label-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px;gap:10px}
+  label{font-weight:650;font-size:13.5px}
+  .val{font-family:var(--mono);font-size:13px;color:var(--brand);background:var(--brand-soft);
+    border-radius:6px;padding:1px 8px;font-variant-numeric:tabular-nums}
+  .num{width:78px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;
+    font-family:var(--mono);font-size:13px;text-align:right;color:var(--ink);background:#fff}
+  .num:focus{outline:2px solid var(--brand-2);outline-offset:1px;border-color:var(--brand-2)}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:5px;border-radius:99px;
+    background:linear-gradient(90deg,var(--brand-2) var(--p,50%),var(--line) var(--p,50%));outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:17px;height:17px;border-radius:50%;
+    background:#fff;border:3px solid var(--brand);cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#fff;
+    border:3px solid var(--brand);cursor:pointer}
+  .pills{display:flex;gap:7px;flex-wrap:wrap}
+  .pill{position:relative}
+  .pill input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer}
+  .pill span{display:block;padding:7px 15px;border:1px solid var(--line);border-radius:999px;
+    font-size:13.5px;color:var(--ink-2);background:#fff;transition:.15s;cursor:pointer;user-select:none}
+  .pill input:checked + span{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600}
+  .pill input:focus-visible + span{outline:2px solid var(--brand-2);outline-offset:2px}
+  .pill.smoke input:checked + span{background:var(--danger);border-color:var(--danger)}
+  select{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;font-size:14px;
+    background:#fff;color:var(--ink);font-family:inherit}
+  select:focus{outline:2px solid var(--brand-2);outline-offset:1px;border-color:var(--brand-2)}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:6px;
+    padding:12px 16px;border:0;border-radius:10px;background:var(--brand);color:#fff;font-size:14.5px;
+    font-weight:650;cursor:pointer;transition:.15s;font-family:inherit}
+  .btn:hover{background:#0b4a50}
+  .btn:disabled{opacity:.6;cursor:progress}
+  .presets{display:flex;flex-direction:column;gap:6px;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line)}
+  .presets .t{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:700}
+  .preset{background:none;border:1px solid var(--line);border-radius:8px;padding:7px 10px;text-align:left;
+    font-size:12.8px;color:var(--ink-2);cursor:pointer;font-family:inherit;transition:.15s}
+  .preset:hover{border-color:var(--brand-2);color:var(--brand);background:var(--brand-soft)}
+
+  /* ---------- result ---------- */
+  .result-empty{padding:34px 20px;text-align:center;color:var(--ink-3)}
+  .result-empty .big{font-size:34px;margin-bottom:6px}
+  .amount{font-size:clamp(34px,5.4vw,46px);font-weight:750;letter-spacing:-.03em;line-height:1.05;
+    font-variant-numeric:tabular-nums;margin:2px 0 4px}
+  .amount .cur{font-size:.5em;font-weight:600;color:var(--ink-3);vertical-align:.32em;margin-right:2px}
+  .amount .per{font-size:.3em;font-weight:600;color:var(--ink-3);letter-spacing:0}
+  .band{font-size:13px;color:var(--ink-2)}
+  .ciband{margin:12px 0 0;display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-2);
+    background:var(--line-2);border-radius:9px;padding:8px 11px;font-family:var(--mono)}
+  .ciband b{color:var(--ink)}
+  .driver{margin:14px 0 0;padding:12px 14px;border-left:3px solid var(--gold);background:var(--gold-soft);
+    border-radius:0 9px 9px 0;font-size:13.5px;color:#4a3510}
+  .driver b{color:#2f2109}
+
+  .bars{margin-top:18px}
+  .bars h3{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);margin:0 0 10px}
+  .bar{display:grid;grid-template-columns:140px 1fr 82px;align-items:center;gap:10px;margin-bottom:6px;font-size:12.6px}
+  .bar .nm{color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bar .track{height:9px;border-radius:99px;background:var(--line-2);position:relative;overflow:hidden}
+  .bar .fill{position:absolute;top:0;bottom:0;border-radius:99px}
+  .bar .fill.pos{left:50%;background:var(--danger)}
+  .bar .fill.neg{right:50%;background:var(--ok)}
+  .bar .mid{position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--line)}
+  .bar .vv{text-align:right;font-family:var(--mono);font-size:11.8px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+  .bar .vv.pos{color:var(--danger)}
+  .bar .vv.neg{color:var(--ok)}
+  .legend{display:flex;gap:14px;font-size:11.5px;color:var(--ink-3);margin-top:10px;flex-wrap:wrap}
+  .legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:middle}
+  .err{background:#fdeceb;border:1px solid #f3c9c4;color:var(--danger);border-radius:9px;padding:10px 12px;font-size:13px}
+  .spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;
+    border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* ---------- below ---------- */
+  section.block{margin-top:26px}
+  .block h2.sec{font-size:16px;margin:0 0 12px;letter-spacing:-.01em}
+  .cards3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+  @media (max-width:820px){ .cards3{grid-template-columns:1fr} }
+  .mini{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:15px 16px;box-shadow:var(--shadow)}
+  .mini .k{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:700}
+  .mini .v{font-size:24px;font-weight:720;letter-spacing:-.02em;margin:4px 0 2px;font-variant-numeric:tabular-nums}
+  .mini .d{font-size:12.5px;color:var(--ink-3);margin:0}
+
+  table{width:100%;border-collapse:collapse;font-size:13.4px}
+  thead th{background:#eef4f6;color:#123;text-align:left;font-size:11.5px;letter-spacing:.06em;
+    text-transform:uppercase;padding:10px 12px;border-bottom:1px solid var(--line)}
+  tbody td{padding:10px 12px;border-bottom:1px solid var(--line-2);font-variant-numeric:tabular-nums}
+  tbody tr:last-child td{border-bottom:0}
+  tbody tr.best td{background:var(--brand-soft);font-weight:650;color:#0a4347}
+  tbody tr.best td:first-child::after{content:" ★";color:var(--brand)}
+  .num-cell{text-align:right;font-family:var(--mono);font-size:12.8px}
+  .tbl-note{font-size:12px;color:var(--ink-3);margin:10px 2px 0}
+  .scroll{overflow-x:auto}
+
+  footer{margin-top:30px;border-top:1px solid var(--line);background:#fff}
+  .foot{padding:20px 0 34px;display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:flex-start}
+  .foot p{margin:0;font-size:12.5px;color:var(--ink-3);max-width:66ch}
+  .foot .links{display:flex;gap:14px;flex-wrap:wrap;font-size:12.8px}
+  .warn{background:var(--gold-soft);border:1px solid #f0dcb8;color:#6b4a10;border-radius:9px;
+    padding:10px 13px;font-size:12.6px;margin-top:16px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="eyebrow">Case Study 14 · Machine Learning · B.E. AI &amp; ML</div>
+    <h1>Medical Insurance Cost Predictor</h1>
+    <p class="sub">
+      Enter an applicant's profile and the trained regression model estimates their annual medical
+      insurance charge in US dollars. The deployed model is the winner of a four-model comparison run on
+      the Medical Cost Personal Dataset (1,337 policyholders).
+    </p>
+    <div class="badges">
+      <span class="badge">Model · <b>Polynomial deg-2 + Ridge</b></span>
+      <span class="badge">Test R² · <b>{{ '%.4f'|format(results.metrics_table[best_model].R2) }}</b></span>
+      <span class="badge">RMSE · <b>${{ '{:,.2f}'.format(results.metrics_table[best_model].RMSE) }}</b></span>
+      <span class="badge">MAE · <b>${{ '{:,.2f}'.format(results.metrics_table[best_model].MAE) }}</b></span>
+      <span class="badge">Held-out test rows · <b>{{ meta.metrics.n_test }}</b></span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="grid">
+
+    <!-- ------------------------- input ------------------------- -->
+    <form class="card" id="form" autocomplete="off">
+      <div class="card-head">
+        <h2>Applicant details</h2>
+        <p class="hint">Values outside the training range are rejected</p>
+      </div>
+      <div class="card-body">
+
+        <div class="field">
+          <div class="label-row">
+            <label for="age">Age <span class="hint">({{ limits.age[0] }}–{{ limits.age[1] }} years)</span></label>
+            <input class="num" type="number" id="age_num" min="{{ limits.age[0] }}" max="{{ limits.age[1] }}" value="45">
+          </div>
+          <input type="range" id="age" min="{{ limits.age[0] }}" max="{{ limits.age[1] }}" step="1" value="45">
+        </div>
+
+        <div class="field">
+          <div class="label-row">
+            <label>Sex</label>
+          </div>
+          <div class="pills">
+            <label class="pill"><input type="radio" name="sex" value="female"><span>Female</span></label>
+            <label class="pill"><input type="radio" name="sex" value="male" checked><span>Male</span></label>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="label-row">
+            <label for="bmi">Body Mass Index <span class="hint">({{ limits.bmi[0] }}–{{ limits.bmi[1] }})</span></label>
+            <input class="num" type="number" id="bmi_num" min="{{ limits.bmi[0] }}" max="{{ limits.bmi[1] }}" step="0.1" value="34.8">
+          </div>
+          <input type="range" id="bmi" min="{{ limits.bmi[0] }}" max="{{ limits.bmi[1] }}" step="0.1" value="34.8">
+        </div>
+
+        <div class="field">
+          <div class="label-row">
+            <label for="children">Children</label>
+          </div>
+          <select id="children">
+            {% for i in range(limits.children[0], limits.children[1] + 1) %}
+            <option value="{{ i }}" {% if i == 2 %}selected{% endif %}>{{ i }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="field">
+          <div class="label-row">
+            <label>Smoking status</label>
+          </div>
+          <div class="pills">
+            <label class="pill smoke"><input type="radio" name="smoker" value="no"><span>Non-smoker</span></label>
+            <label class="pill smoke"><input type="radio" name="smoker" value="yes" checked><span>Smoker</span></label>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="label-row"><label for="region">Residential region</label></div>
+          <select id="region">
+            {% for r in regions %}
+            <option value="{{ r }}" {% if r == 'northeast' %}selected{% endif %}>{{ r|capitalize }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <button class="btn" id="go" type="submit">Predict annual charge</button>
+
+        <div class="presets">
+          <span class="t">Try a case from the report</span>
+          {% for p in presets %}
+          <button type="button" class="preset"
+                  data-p='{{ p.payload|tojson }}'>{{ p.label }}</button>
+          {% endfor %}
+        </div>
+      </div>
+    </form>
+
+    <!-- ------------------------- output ------------------------- -->
+    <div class="card" id="result">
+      <div class="card-head">
+        <h2>Prediction</h2>
+        <p class="hint" id="stamp">ready</p>
+      </div>
+      <div class="card-body" id="result-body">
+        <div class="result-empty">
+          <div class="big">$</div>
+          <p>Fill in the profile and press <b>Predict annual charge</b>.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ------------------------- context ------------------------- -->
+  <section class="block">
+    <h2 class="sec">Why the model predicts what it predicts</h2>
+    <div class="cards3">
+      <div class="mini">
+        <div class="k">Smoking</div>
+        <div class="v">${{ '{:,.0f}'.format(meta.dataset.smoker_mean) }}</div>
+        <p class="d">Mean annual charge of smokers, against
+          ${{ '{:,.0f}'.format(meta.dataset.non_smoker_mean) }} for non-smokers.</p>
+      </div>
+      <div class="mini">
+        <div class="k">BMI × smoker</div>
+        <div class="v">{{ '%.2f'|format(meta.importance['bmi_smoker_interaction']) }}</div>
+        <p class="d">Random-forest importance of the strongest engineered feature
+          (age × smoker follows at {{ '%.2f'|format(meta.importance['age_smoker_interaction']) }}).</p>
+      </div>
+      <div class="mini">
+        <div class="k">Typical error</div>
+        <div class="v">± ${{ '{:,.0f}'.format(meta.metrics.rmse) }}</div>
+        <p class="d">Test-set RMSE — the band shown with every prediction below.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <h2 class="sec">The four models that were compared</h2>
+    <div class="card">
+      <div class="card-body scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Model</th>
+              <th class="num-cell">R²</th>
+              <th class="num-cell">MAE (USD)</th>
+              <th class="num-cell">RMSE (USD)</th>
+              <th class="num-cell">MAPE</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for name, m in model_table.items() %}
+            <tr class="{{ 'best' if name == best_model else '' }}">
+              <td>{{ name }}</td>
+              <td class="num-cell">{{ '%.4f'|format(m.R2) }}</td>
+              <td class="num-cell">{{ '{:,.2f}'.format(m.MAE) }}</td>
+              <td class="num-cell">{{ '{:,.2f}'.format(m.RMSE) }}</td>
+              <td class="num-cell">{{ '%.2f'|format(m.MAPE_pct) }}%</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <p class="tbl-note">
+          Held-out test set, n = {{ meta.metrics.n_test }}, random_state = 42.
+          ★ marks the deployed model — {{ best_model }} — fitted on
+          {{ meta.metrics.n_train }} training rows and evaluated on {{ meta.metrics.n_test }} unseen rows.
+        </p>
+      </div>
+    </div>
+    <div class="warn">
+      <b>Academic demonstration.</b> This is a case-study model trained on a public US dataset with six
+      attributes. It is not a quote, and it must not be used for premium setting, underwriting or any
+      clinical decision.
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <p>
+      Medical Insurance Cost Prediction Using Machine Learning Regression Models · Case Study 14.
+      Served by Flask, model loaded from <code>webapp/model/model_bundle.joblib</code>.
+      Full methodology in the project report; figures and their code in <code>FIGURE_GUIDE.md</code>.
+    </p>
+    <div class="links">
+      <a href="/api/model-info">Model info (JSON)</a>
+      <a href="/health">Health</a>
+      <a href="https://github.com/Pranitha-27/Medical-Insurance-Cost-Prediction-.git">GitHub repo</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  const form = document.getElementById('form');
+  const body = document.getElementById('result-body');
+  const stamp = document.getElementById('stamp');
+  const go = document.getElementById('go');
+
+  // ---------- slider <-> number sync ----------
+  function bind(sliderId, numId) {
+    const s = document.getElementById(sliderId);
+    const n = document.getElementById(numId);
+    const paint = () => {
+      const pct = (s.value - s.min) / (s.max - s.min) * 100;
+      s.style.setProperty('--p', pct + '%');
+    };
+    const sync = (from, to) => { to.value = from.value; paint(); };
+    s.addEventListener('input', () => sync(s, n));
+    n.addEventListener('input', () => { if (n.value !== '') sync(n, s); });
+    paint();
+  }
+  bind('age', 'age_num');
+  bind('bmi', 'bmi_num');
+
+  // ---------- helpers ----------
+  const money = v => '$' + Number(v).toLocaleString('en-US',
+    { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const money0 = v => '$' + Math.round(v).toLocaleString('en-US');
+
+  function readForm() {
+    return {
+      age: Number(document.getElementById('age_num').value),
+      bmi: Number(document.getElementById('bmi_num').value),
+      children: Number(document.getElementById('children').value),
+      sex: form.querySelector('input[name=sex]:checked').value,
+      smoker: form.querySelector('input[name=smoker]:checked').value,
+      region: document.getElementById('region').value,
+    };
+  }
+
+  // mirror of the server-side guard, so an out-of-range value is reported
+  // instead of being silently clamped by the slider
+  const LIM = {
+    age: [Number(document.getElementById('age').min), Number(document.getElementById('age').max)],
+    bmi: [Number(document.getElementById('bmi').min), Number(document.getElementById('bmi').max)],
+  };
+  function clientCheck(p) {
+    if (!isFinite(p.age) || p.age < LIM.age[0] || p.age > LIM.age[1])
+      return 'Age must be between ' + LIM.age[0] + ' and ' + LIM.age[1] + ' years.';
+    if (!isFinite(p.bmi) || p.bmi < LIM.bmi[0] || p.bmi > LIM.bmi[1])
+      return 'BMI must be between ' + LIM.bmi[0] + ' and ' + LIM.bmi[1] + '.';
+    return null;
+  }
+
+  function setForm(p) {
+    document.getElementById('age').value = p.age;
+    document.getElementById('age_num').value = p.age;
+    document.getElementById('bmi').value = p.bmi;
+    document.getElementById('bmi_num').value = p.bmi;
+    document.getElementById('children').value = p.children;
+    document.getElementById('region').value = p.region;
+    form.querySelector('input[name=sex][value="' + p.sex + '"]').checked = true;
+    form.querySelector('input[name=smoker][value="' + p.smoker + '"]').checked = true;
+    ['age', 'bmi'].forEach(id => {
+      const s = document.getElementById(id);
+      s.style.setProperty('--p', (s.value - s.min) / (s.max - s.min) * 100 + '%');
+    });
+    submit();
+  }
+
+  // ---------- render ----------
+  function render(d) {
+    const c = d.contributions;
+    const peak = Math.max.apply(null, c.map(x => Math.abs(x.value))) || 1;
+    const bars = c.map(x => {
+      const pct = (Math.abs(x.value) / peak) * 50;
+      const cls = x.value >= 0 ? 'pos' : 'neg';
+      return '<div class="bar">' +
+        '<span class="nm" title="' + x.feature + '">' + x.feature + '</span>' +
+        '<span class="track"><span class="fill ' + cls + '" style="width:' + pct.toFixed(1) + '%"></span>' +
+        '<span class="mid"></span></span>' +
+        '<span class="vv ' + cls + '">' + (x.value >= 0 ? '+' : '−') + money0(Math.abs(x.value)) + '</span>' +
+        '</div>';
+    }).join('');
+
+    const top = c[0];
+    const driver = top && top.value > 0
+      ? 'The largest upward driver is <b>' + top.feature + '</b> (+' + money0(top.value) +
+        ' on top of the model baseline).'
+      : 'No feature pushes the estimate above the model baseline.';
+
+    const m = d.metrics;
+    body.innerHTML =
+      '<div class="label-row" style="margin-bottom:2px">' +
+        '<span class="hint" style="letter-spacing:.08em;text-transform:uppercase;font-weight:700">Estimated annual charge</span>' +
+      '</div>' +
+      '<div class="amount"><span class="cur">USD</span>' + Number(d.prediction).toLocaleString('en-US',
+        { minimumFractionDigits: 2, maximumFractionDigits: 2 }) +
+        '<span class="per"> / year</span></div>' +
+      '<div class="band">' + d.band + ' · typical error ± ' + money0(m.rmse) + ' (test RMSE)</div>' +
+      '<div class="ciband">likely range <b>' + money0(d.low) + '</b> – <b>' + money0(d.high) + '</b></div>' +
+      '<div class="driver">' + driver + '</div>' +
+      '<div class="bars"><h3>How each input moves the estimate</h3>' + bars +
+        '<div class="legend">' +
+          '<span><i style="background:var(--danger)"></i>raises the cost</span>' +
+          '<span><i style="background:var(--ok)"></i>lowers the cost</span>' +
+          '<span>baseline: ' + money(d.baseline) + ' (the model intercept)</span>' +
+        '</div>' +
+      '</div>';
+    stamp.textContent = 'updated ' + new Date().toLocaleTimeString('en-GB');
+  }
+
+  function fail(msg) {
+    body.innerHTML = '<div class="err"><b>Cannot predict.</b><br>' + msg + '</div>';
+    stamp.textContent = 'error';
+  }
+
+  // ---------- submit ----------
+  let inflight = null;
+  function submit() {
+    const payload = readForm();
+    const problem = clientCheck(payload);
+    if (problem) { fail(problem); return; }
+    // keep the sliders in step with what is about to be sent
+    ['age', 'bmi'].forEach(k => {
+      const s0 = document.getElementById(k);
+      s0.value = payload[k];
+      s0.style.setProperty('--p', (s0.value - s0.min) / (s0.max - s0.min) * 100 + '%');
+    });
+    go.disabled = true;
+    go.innerHTML = '<span class="spinner"></span> Predicting…';
+    if (inflight) inflight.abort();
+    inflight = new AbortController();
+    fetch('/api/predict', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: inflight.signal,
+    })
+      .then(r => r.json().then(j => ({ ok: r.ok, j })))
+      .then(({ ok, j }) => ok && j.ok ? render(j) : fail(j.error || 'Unexpected server response.'))
+      .catch(e => { if (e.name !== 'AbortError') fail('The server could not be reached.'); })
+      .finally(() => {
+        go.disabled = false;
+        go.textContent = 'Predict annual charge';
+      });
+  }
+
+  form.addEventListener('submit', e => { e.preventDefault(); submit(); });
+  document.querySelectorAll('.preset').forEach(b =>
+    b.addEventListener('click', () => setForm(JSON.parse(b.dataset.p))));
+
+  // sensible first result on load
+  submit();
+})();
+</script>
+</body>
+</html>

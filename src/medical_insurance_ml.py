@@ -108,36 +108,13 @@ sns.boxplot(data=df, x="children", y="charges", ax=ax[1], color="#f4a261")
 ax[1].set_title("Charges by Number of Children"); ax[1].set_xlabel("Children"); ax[1].set_ylabel("Charges (USD)")
 plt.savefig(f"{FIG}/fig3_2_smoker_children.png"); plt.close()
 
-# Fig 3.3 numerical feature distributions
-fig, ax = plt.subplots(1, 3, figsize=(11, 3.3))
-for a, c in zip(ax, ["age", "bmi", "children"]):
-    sns.histplot(df[c], kde=(c != "children"), ax=a, color="#343a40", bins=25)
-    a.set_title(f"Distribution of {c.capitalize()}")
-    a.set_xlabel(c); a.set_ylabel("Frequency")
-plt.savefig(f"{FIG}/fig3_3_numeric_distributions.png"); plt.close()
-
-# Fig 3.4 scatter age/bmi vs charges
+# Fig 3.3 (report numbering) scatter age/bmi vs charges
 fig, ax = plt.subplots(1, 2, figsize=(10, 3.6))
 sns.scatterplot(data=df, x="age", y="charges", hue="smoker", s=16, ax=ax[0])
 ax[0].set_title("Age vs Charges (coloured by Smoker)"); ax[0].set_xlabel("Age (years)"); ax[0].set_ylabel("Charges (USD)")
 sns.scatterplot(data=df, x="bmi", y="charges", hue="smoker", s=16, ax=ax[1])
 ax[1].set_title("BMI vs Charges (coloured by Smoker)"); ax[1].set_xlabel("BMI"); ax[1].set_ylabel("Charges (USD)")
-plt.savefig(f"{FIG}/fig3_4_scatter.png"); plt.close()
-
-# Fig 3.5 correlation heatmap
-plt.figure(figsize=(5.2, 4.2))
-sns.heatmap(df[["age", "bmi", "children", "charges"]].corr(), annot=True,
-            fmt=".3f", cmap="RdBu_r", center=0, square=True, cbar_kws={"shrink": .8})
-plt.title("Correlation Matrix (Numerical Features)")
-plt.savefig(f"{FIG}/fig3_5_corr.png"); plt.close()
-
-# Fig 3.6 region / sex charges
-fig, ax = plt.subplots(1, 2, figsize=(10, 3.6))
-sns.boxplot(data=df, x="region", y="charges", ax=ax[0], color="#6d597a")
-ax[0].set_title("Charges by Region"); ax[0].tick_params(axis="x", rotation=15)
-sns.boxplot(data=df, x="sex", y="charges", ax=ax[1], color="#457b9d")
-ax[1].set_title("Charges by Sex")
-plt.savefig(f"{FIG}/fig3_6_region_sex.png"); plt.close()
+plt.savefig(f"{FIG}/fig3_3_scatter.png"); plt.close()
 
 # ----------------------------------------------------------------------------
 # 3. PREPROCESSING
@@ -302,17 +279,14 @@ plt.xlabel("Importance (mean decrease in impurity)")
 plt.title("Random Forest – Top 10 Feature Importances")
 plt.savefig(f"{FIG}/fig6_4_feature_importance.png"); plt.close()
 
-# Fig 6.5 error by smoker group (fairness / error analysis)
+# Subgroup error analysis: absolute error by smoking status.
+# The numbers land in results.json["mae_by_smoker"] and are plotted by
+# src/make_figures_refstyle.py as panel A of Fig. 6.5 (report figure).
 err_df = pd.DataFrame({"actual": y_test.values, "pred": np.asarray(preds[best_name][1])})
 err_df["smoker"] = df.loc[y_test.index, "smoker"].values
 err_df["abs_err"] = (err_df.actual - err_df.pred).abs()
 R["mae_by_smoker"] = err_df.groupby("smoker")["abs_err"].mean().round(2).to_dict()
-plt.figure(figsize=(4.6, 3.4))
-sns.boxplot(data=err_df, x="smoker", y="abs_err", hue="smoker", legend=False,
-            palette=["#4c956c", "#c1121f"])
-plt.ylabel("Absolute Error (USD)"); plt.xlabel("Smoker")
-plt.title(f"Absolute Error by Smoking Status\n({best_name})")
-plt.savefig(f"{FIG}/fig6_5_error_by_smoker.png"); plt.close()
+print("MAE by smoker:", R["mae_by_smoker"])
 
 # Fig 5.1 workflow flowchart (drawn with matplotlib)
 fig, ax = plt.subplots(figsize=(4.6, 10.2))
@@ -352,6 +326,20 @@ for i, idx in enumerate(sample_idx):
     r["error"] = round(r["predicted"] - r["actual"], 2)
     r["abs_pct_err"] = round(100 * abs(r["error"]) / r["actual"], 2)
     R["sample_predictions"].append(r)
+
+# --- dump test-set predictions for the report figures (Fig. 6.2, 6.3, 6.5) -----------
+pred_dump = {}
+for key, name in [("mlr", "Multiple Linear Regression"),
+                  ("poly", "Polynomial Regression (deg 2)")]:
+    yt, yp = preds[name]
+    pred_dump[key] = {
+        "model": name,
+        "y_true": [round(float(v), 2) for v in np.asarray(yt)],
+        "y_pred": [round(float(v), 2) for v in np.asarray(yp)],
+        "smoker": [str(v) for v in df.loc[yt.index, "smoker"].values],
+    }
+with open(os.path.join(_ROOT, "src", "predictions.json"), "w") as f:
+    json.dump(pred_dump, f, indent=1)
 
 # New unseen customers demonstration
 new = pd.DataFrame([

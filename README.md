@@ -49,20 +49,32 @@ Five-fold cross-validation reproduced the ranking (CV R² 0.740 → 0.847 for ML
 
 ```
 medical-insurance-cost-prediction/
+├── assets/                            # BMS + VTU logos used on the report cover
 ├── data/
 │   └── insurance.csv                  # Medical Cost Personal Dataset (1,338 rows)
 ├── docs/
-│   ├── Medical_Insurance_..._Report.pdf     # final report (44 pages)
+│   ├── Medical_Insurance_..._Report.pdf     # final report (40 pages + rubric pages)
 │   └── Medical_Insurance_..._Report.docx    # editable Word version
-├── figures/                           # all 13 auto-generated plots
+├── figures/                           # the 10 report figures (monochrome house style)
+├── FIGURE_GUIDE.md                    # every figure explained + the code that draws it
+├── EXECUTION_STEPS.md                 # step-by-step setup, run and troubleshooting
+├── VIVA_QA.md                         # 42 viva questions with answers
 ├── src/
-│   ├── medical_insurance_ml.py        # ⭐ full pipeline: EDA → models → figures → results.json
-│   ├── results.json                   # every number quoted in the report
+│   ├── medical_insurance_ml.py        # ⭐ full pipeline: EDA → models → results.json + predictions.json
+│   ├── make_figures_refstyle.py       # draws the 10 report figures from the saved results
+│   ├── results.json                   # every metric quoted in the report
+│   ├── predictions.json               # test-set predictions (drives Fig. 6.2, 6.3, 6.5)
 │   ├── report_content.py              # report text (single source of truth)
-│   ├── make_pdf.py                    # renders the PDF (reportlab, two-pass TOC)
+│   ├── make_pdf.py                    # renders the PDF (reportlab)
 │   └── make_docx.py                   # renders the DOCX (python-docx)
+├── webapp/                            # Flask demo: enter a profile, get a prediction
+│   ├── app.py                         #   routes /, /api/predict, /api/model-info, /health
+│   ├── export_model.py                #   re-trains + saves model/model_bundle.joblib
+│   ├── model/model_bundle.joblib      #   the deployed artefact (~5 KB)
+│   └── templates/index.html           #   single-page UI, no CDN, works offline
 ├── medical_insurance_cost_prediction.ipynb   # executed walkthrough notebook
 ├── requirements.txt
+├── SUBMISSION_CHECKLIST.md
 └── README.md
 ```
 
@@ -78,12 +90,26 @@ pip install -r requirements.txt
 # 1. Reproduce every result, figure and results.json  (~60 s on a laptop CPU)
 python src/medical_insurance_ml.py
 
-# 2. (optional) rebuild the report from those results
-python src/make_pdf.py     # needs reportlab
+# 2. (optional) rebuild the report figures and the report itself
+python src/make_figures_refstyle.py
+python src/make_pdf.py     # needs reportlab   (run twice so the TOC picks up page numbers)
 python src/make_docx.py    # needs python-docx
 ```
 
 Or just open **`medical_insurance_cost_prediction.ipynb`** in Jupyter/Colab and run all cells.
+Full details, expected output and troubleshooting are in **`EXECUTION_STEPS.md`**.
+
+### 🌐 Run the web app
+
+```bash
+python webapp/app.py          # -> http://localhost:5000
+```
+
+A Flask page where an applicant's age, sex, BMI, children, smoking status and region produce a predicted
+annual charge, a ± 1 RMSE band, and an exact per-feature contribution breakdown
+(`prediction = intercept + Σ contributions`). The model is the report's winner, loaded from
+`webapp/model/model_bundle.joblib`, so the demo and the report never disagree. Details and the JSON API are
+in `webapp/README.md`.
 
 ---
 
@@ -109,19 +135,32 @@ Or just open **`medical_insurance_cost_prediction.ipynb`** in Jupyter/Colab and 
 
 ---
 
-## 📈 Figures
+## 📈 Figures and tables
+
+The report contains **10 figures** and **10 tables** across 40 numbered pages (plus the CCA rubric pages
+at the end).
 
 | | |
 |---|---|
-| `fig3_1_charges_distribution.png` | target is right-skewed (skew 1.52) and multimodal |
-| `fig3_4_scatter.png` | the smoking bands + BMI interaction |
-| `fig5_1_workflow.png` | end-to-end pipeline flowchart |
-| `fig6_1_model_comparison.png` | R² and RMSE by model |
-| `fig6_2_actual_vs_predicted.png` | linear model's horizontal banding vs polynomial fit |
-| `fig6_3_residuals.png` | heteroscedasticity of the linear baseline |
-| `fig6_4_feature_importance.png` | interaction features dominate |
-| `fig6_5_error_by_smoker.png` | subgroup error analysis |
-| `figB1_learning_curve.png` | performance saturates at the available sample size |
+| `fig3_1_charges_distribution.png` | Fig. 3.1 — target is right-skewed (skew 1.52) and multimodal |
+| `fig3_2_smoker_children.png` | Fig. 3.2 — charges by smoking status and number of children |
+| `fig3_3_scatter.png` | Fig. 3.3 — the smoking bands + BMI interaction |
+| `fig5_1_workflow.png` | Fig. 5.1 — end-to-end pipeline flowchart |
+| `fig6_1_model_comparison.png` | Fig. 6.1 — R² and RMSE by model |
+| `fig6_2_actual_vs_predicted.png` | Fig. 6.2 — linear model's banding vs polynomial fit |
+| `fig6_3_residuals.png` | Fig. 6.3 — heteroscedasticity of the linear baseline |
+| `fig6_4_feature_importance.png` | Fig. 6.4 — interaction features dominate |
+| `fig6_5_error_analysis.png` | Fig. 6.5 — absolute error by smoker + signed error vs actual |
+| `figB1_learning_curve.png` | Fig. B.1 — performance saturates at the available sample size |
+
+The same model is served live by the Flask app in `webapp/`. Evidence the site shows, all taken from the
+report: R² = 0.9031, RMSE = USD 4,218.88, and the four-model comparison table.
+
+`FIGURE_GUIDE.md` gives the explanation and the exact code for each of these ten figures.
+
+Tables: 2.1 (attribute description), 3.1–3.3 (descriptive statistics, group means, correlation),
+4.1–4.2 (algorithms and preprocessing), 5.1 (hyper-parameter search spaces), 6.1 (test metrics),
+6.2 (sample predictions), B.1 (cross-validated and demonstration results).
 
 ---
 
@@ -156,6 +195,21 @@ Key literature (full IEEE list in `docs/` → References):
 3. J. Ruth Sandra *et al.*, "Prediction of cost for medical care insurance by using regression models," *Springer ERCICA*, 2024.
 4. U. Orji, E. Ukwandu, "Machine learning for an explainable cost prediction of medical insurance," *ML with Applications*, 15:100516, 2024.
 5. M. Hanafy, O. M. A. Mahmoud, "Predict health insurance cost by using ML and DNN regression models," *IJITEE*, 10(3):137–143, 2021.
+
+---
+
+## 👥 Authors
+
+| Name | USN |
+|---|---|
+| _Student 1_ | _1XX21AI001_ |
+| _Student 2_ | _1XX21AI002_ |
+| _Student 3_ | _1XX21AI003_ |
+| _Student 4_ | _1XX21AI004_ |
+
+**Guide:** _Guide Name, Designation_ · **Department of Artificial Intelligence and Machine Learning**
+
+Viva preparation: `VIVA_QA.md` (42 questions, with a one-table "quick number sheet" at the end).
 
 ---
 
